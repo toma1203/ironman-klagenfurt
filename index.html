@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Road to Klagenfurt</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0}
+[hidden]{display:none!important}
+/* Layout: a race-bib header with the countdown, then a single 720px column of tabbed panels (Today, Week, Plan, Progress, Race). */
+:root{
+  --bg:#f3f6f6; --surface:#ffffff; --ink:#14232b; --muted:#5b6b72; --line:#d9e2e4;
+  --lake:#0e8a8f; --lake-soft:#d7eeee;
+  --swim:#1b8fb0; --bike:#c98a12; --run:#d1543f; --other:#7a7f9a;
+  --good:#2f8f4e; --warn:#c07a00; --bad:#c0392b; --chip:#e9eff0;
+  --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"Source Sans 3","Segoe UI",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f181c; --surface:#16232a; --ink:#e6eef0; --muted:#97a9b0; --line:#25363e;
+  --lake:#3cc2c4; --lake-soft:#173b3e; --swim:#4cb6d6; --bike:#e3a83a; --run:#ef7b66; --other:#a3a8c4;
+  --good:#5cc27a; --warn:#e8a640; --bad:#ef6b5c; --chip:#1e2e35; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f181c; --surface:#16232a; --ink:#e6eef0; --muted:#97a9b0; --line:#25363e;
+  --lake:#3cc2c4; --lake-soft:#173b3e; --swim:#4cb6d6; --bike:#e3a83a; --run:#ef7b66; --other:#a3a8c4;
+  --good:#5cc27a; --warn:#e8a640; --bad:#ef6b5c; --chip:#1e2e35; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{background:var(--bg);color:var(--ink)}
+body{font-family:var(--body);font-size:15px;line-height:1.5}
+.wrap{max-width:720px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:18px 48px}
+h1,h2,h3{font-family:var(--display);font-weight:600;letter-spacing:.01em;text-wrap:balance;margin:0;line-height:1.1}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.lbl{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.muted{color:var(--muted)}
+/* header */
+.bib{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end;border-bottom:3px solid var(--ink);padding-bottom:14px}
+.bib h1{font-size:34px;text-transform:uppercase}
+.bib .sub{color:var(--muted);font-size:14px}
+.count{text-align:right}
+.count b{display:block;font-family:var(--display);font-size:52px;line-height:.9;color:var(--lake)}
+.legs{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:13px;color:var(--muted)}
+.legs span::before{content:"";display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;background:var(--c);vertical-align:0}
+/* tabs */
+nav{display:flex;gap:4px;margin:16px 0 18px;overflow-x:auto;position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:5;padding-block:6px}
+nav button{font:600 15px var(--body);border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:7px 14px;border-radius:999px;cursor:pointer;white-space:nowrap}
+nav button[aria-selected="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--lake);outline-offset:2px}
+section{display:grid;gap:18px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.between{justify-content:space-between}
+/* sessions */
+.sess{display:grid;grid-template-columns:6px 1fr;gap:12px}
+.sess .bar{border-radius:3px;background:var(--c)}
+.sess h3{font-size:22px}
+.sess p{margin:6px 0 0;max-width:62ch}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;background:var(--chip);color:var(--ink)}
+.chip.key{background:var(--ink);color:var(--bg)}
+.chip.done{background:var(--good);color:var(--surface)}
+.chip.part{background:var(--warn);color:var(--surface)}
+.chip.miss{background:var(--bad);color:var(--surface)}
+.status{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center}
+.dot{width:46px;height:46px;border-radius:50%;background:var(--c);display:grid;place-items:center;color:var(--surface);font:700 20px var(--display)}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:14px}
+.stat b{display:block;font-family:var(--mono);font-size:18px;font-weight:500}
+@media (max-width:520px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.bib h1{font-size:28px}.count b{font-size:42px}}
+.act{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:baseline;padding:8px 0;border-top:1px solid var(--line)}
+.act:first-child{border-top:0}
+.tag{font:600 12px var(--body);text-transform:uppercase;letter-spacing:.06em;color:var(--c)}
+/* week */
+.days{display:grid;gap:8px}
+.day{display:grid;grid-template-columns:54px 1fr;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.day:first-child{border-top:0}
+.day.today .dname{color:var(--lake)}
+.dname{font-family:var(--display);font-size:20px;line-height:1}
+.dname small{display:block;font-family:var(--body);font-size:12px;color:var(--muted)}
+.item{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.item .t{font-weight:600}
+.sw{display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--c)}
+.totals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.meter{height:8px;background:var(--chip);border-radius:4px;overflow:hidden;margin-top:6px}
+.meter i{display:block;height:100%;background:var(--c)}
+/* plan */
+.weekrow{display:grid;grid-template-columns:44px 92px 1fr 52px;gap:10px;align-items:center;padding:6px 0;border-top:1px solid var(--line);cursor:pointer;background:none;border-left:0;border-right:0;border-bottom:0;width:100%;text-align:left;color:var(--ink);font:inherit}
+.weekrow.now{background:var(--lake-soft)}
+.hb{height:12px;border-radius:3px;background:var(--c)}
+.phasehead{margin-top:14px}
+/* forms */
+input,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px 9px;width:100%}
+.feel{display:flex;gap:6px}
+.feel button{flex:1;font:600 15px var(--body);padding:8px 0;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+.feel button[aria-pressed="true"]{background:var(--lake);color:var(--surface);border-color:var(--lake)}
+.btn{font:600 14px var(--body);border:0;background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:6px;cursor:pointer}
+.btn.ghost{background:var(--chip);color:var(--ink)}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:520px){.grid2{grid-template-columns:1fr}}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:6px 8px;border-top:1px solid var(--line)}
+th{font-weight:600;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+td.n{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.scroll{overflow-x:auto}
+svg text{fill:var(--muted);font-family:var(--mono);font-size:10px}
+.note{border-left:3px solid var(--lake);padding-left:12px;max-width:62ch}
+.empty{color:var(--muted);font-style:italic}
+@media (prefers-reduced-motion:no-preference){.meter i{transition:width .4s}}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header class="bib">
+    <div>
+      <div class="lbl">IRONMAN Kärnten-Klagenfurt · 13 June 2027</div>
+      <h1>Road to Klagenfurt</h1>
+      <div class="sub" id="phaseLine">34-week plan · goal about 12 hours</div>
+    </div>
+    <div class="count"><b class="num" id="daysLeft">–</b><span class="lbl">days to go</span></div>
+  </header>
+  <div class="legs"><span style="--c:var(--swim)">Swim 3.8 km</span><span style="--c:var(--bike)">Bike 180.2 km</span><span style="--c:var(--run)">Run 42.2 km</span><span id="syncLine"></span></div>
+
+  <nav role="tablist" aria-label="Sections">
+    <button role="tab" id="t-today" aria-selected="true" data-tab="today">Today</button>
+    <button role="tab" id="t-week" aria-selected="false" data-tab="week">Week</button>
+    <button role="tab" id="t-plan" aria-selected="false" data-tab="plan">Plan</button>
+    <button role="tab" id="t-progress" aria-selected="false" data-tab="progress">Progress</button>
+    <button role="tab" id="t-race" aria-selected="false" data-tab="race">Race &amp; zones</button>
+  </nav>
+
+  <section id="p-today" data-panel="today">
+    <div class="panel" id="readiness"></div>
+    <div id="todaySessions" style="display:grid;gap:12px"></div>
+    <div class="panel" id="yesterday"></div>
+    <div class="panel" id="checkin">
+      <div class="row between"><h2 style="font-size:22px">How did today feel?</h2><span class="lbl" id="ciDate"></span></div>
+      <p class="muted" style="margin:4px 0 10px">1 = wrecked, 5 = fresh. Saved on this device.</p>
+      <div class="feel" id="feel"></div>
+      <label for="ciNote" class="lbl" style="display:block;margin-top:12px">Note (sore knee, skipped swim, busy exam week…)</label>
+      <textarea id="ciNote" rows="2"></textarea>
+      <div class="row" style="margin-top:10px"><button class="btn" id="ciSave">Save check-in</button><span class="muted" id="ciMsg"></span></div>
+    </div>
+  </section>
+
+  <section id="p-week" data-panel="week" hidden>
+    <div class="row between">
+      <button class="btn ghost" id="wkPrev" aria-label="Previous week">←</button>
+      <div style="text-align:center"><h2 id="wkTitle" style="font-size:26px"></h2><div class="muted" id="wkSub"></div></div>
+      <button class="btn ghost" id="wkNext" aria-label="Next week">→</button>
+    </div>
+    <div class="panel totals" id="wkTotals"></div>
+    <div class="panel days" id="wkDays"></div>
+  </section>
+
+  <section id="p-plan" data-panel="plan" hidden>
+    <div class="panel note">
+      <p style="margin:0">Base builds aerobic fitness and fixes the bike gap. Build adds race-specific intensity and brick runs. Peak brings the biggest weekends, with 5–6 hour rides on hilly roads like the Klagenfurt course. Taper cuts volume so you arrive fresh. Every fourth week is lighter. Weekday sessions stay at about an hour so they fit around classes, and the long sessions sit on the weekend.</p>
+    </div>
+    <div class="panel" id="planList"></div>
+  </section>
+
+  <section id="p-progress" data-panel="progress" hidden>
+    <div class="panel"><div class="row between"><h2 style="font-size:22px">Weekly training hours</h2><span class="lbl">last 16 weeks · line = plan</span></div><div class="scroll" id="hoursChart"></div></div>
+    <div class="grid2">
+      <div class="panel" id="easyPanel"></div>
+      <div class="panel" id="longPanel"></div>
+    </div>
+    <div class="panel"><div class="row between"><h2 style="font-size:22px">Resting heart rate &amp; sleep</h2><span class="lbl">last 28 days</span></div><div class="scroll" id="wellChart"></div></div>
+    <div class="panel"><h2 style="font-size:22px">Recent activities</h2><div class="scroll"><table id="actTable"></table></div></div>
+  </section>
+
+  <section id="p-race" data-panel="race" hidden>
+    <div class="panel">
+      <h2 style="font-size:24px">12-hour pacing plan</h2>
+      <div class="scroll"><table id="paceTable"></table></div>
+      <p class="muted" style="margin-bottom:0">The bike decides this race. Your summer rides averaged about 18 km/h with stops on hilly routes; a 6:15 bike needs about 29 km/h. The plan targets that gap, and the FTP retests in weeks 12 and 24 show whether 12 hours is on track or should move to 12:30–13:00.</p>
+    </div>
+    <div class="grid2">
+      <div class="panel">
+        <h2 style="font-size:22px">Bike: FTP</h2>
+        <p class="muted" style="margin:4px 0 10px">From the FTP test on Wednesday 21 October (95% of your 20-minute power).</p>
+        <label class="lbl" for="ftpIn">FTP (watts)</label>
+        <div class="row" style="flex-wrap:nowrap"><input id="ftpIn" type="number" inputmode="numeric" min="80" max="450" placeholder="e.g. 220"><button class="btn" id="ftpSave">Save</button></div>
+        <div id="bikeZones" style="margin-top:12px"></div>
+      </div>
+      <div class="panel">
+        <h2 style="font-size:22px">Swim: CSS</h2>
+        <p class="muted" style="margin:4px 0 10px">From the 400 m and 200 m test on Thursday 22 October.</p>
+        <div class="grid2" style="gap:8px">
+          <div><label class="lbl" for="t400">400 m time</label><input id="t400" placeholder="7:40"></div>
+          <div><label class="lbl" for="t200">200 m time</label><input id="t200" placeholder="3:35"></div>
+        </div>
+        <button class="btn" id="cssSave" style="margin-top:10px">Save</button>
+        <div id="swimZones" style="margin-top:12px"></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h2 style="font-size:22px">Heart rate zones</h2>
+      <p class="muted" style="margin:4px 0 8px">From Garmin: max 201 bpm, lactate threshold 182 bpm running and 180 bpm cycling.</p>
+      <div class="scroll"><table id="hrTable"></table></div>
+    </div>
+  </section>
+</div>
+
+<script>
+const PLAN = [{"w":1,"mon":"2026-10-19","p":"Base","rec":false,"h":6.7,"ss":[{"d":"2026-10-19","s":"strength","t":"Strength + mobility","m":30,"k":false,"x":"Squats, lunges, single-leg deadlifts, calf raises, planks, side planks, glute bridges. 3 rounds, controlled. Then 10 min mobility."},{"d":"2026-10-20","s":"swim","t":"Aerobic swim","m":45,"k":false,"x":"Warm-up 300 m, drills 4 x 50 m, main set 4-8 x 200 m steady (CSS + 10 s/100 m), 20 s rest. Cool-down 200 m."},{"d":"2026-10-21","s":"bike","t":"FTP test","m":60,"k":true,"x":"Warm-up 20 min with 3 x 1 min hard. Then 5 min all-out, 10 min easy, 20 min best steady effort. FTP = 95% of the 20-min average power. Enter it on the Race tab."},{"d":"2026-10-22","s":"swim","t":"CSS swim test","m":45,"k":true,"x":"Warm-up 400 m. Swim 400 m all-out, rest 5 min, then 200 m all-out. Note both times: the app calculates your threshold pace (CSS) on the Race tab."},{"d":"2026-10-23","s":"run","t":"Easy run + strides","m":40,"k":false,"x":"Easy, heart rate under 155 bpm the whole run, then 6 x 20 s strides. It should feel too slow; that is the point."},{"d":"2026-10-24","s":"bike","t":"Long ride","m":120,"k":true,"x":"2h00 at 60-70% FTP (heart rate 135-150). Keep it steady on climbs: no surges above 85% FTP. Eat 60 g carbs per hour."},{"d":"2026-10-25","s":"run","t":"Long run","m":60,"k":true,"x":"1h00 easy, heart rate under 155 bpm (slower than you think)."}]},{"w":2,"mon":"2026-10-26","p":"Base","rec":false,"h":6.9,"ss":[{"d":"2026-10-26","s":"strength","t":"Strength + mobility","m":30,"k":false,"x":"Squats, lunges, single-leg deadlifts, calf raises, planks, side planks, glute bridges. 3 rounds, controlled. Then 10 min mobility."},{"d":"2026-10-27","s":"swim","t":"Aerobic swim","m":45,"k":false,"x":"Warm-up 300 m, drills 4 x 50 m, main set 4-8 x 200 m steady (CSS + 10 s/100 m), 20 s rest. Cool-down 200 m."},{"d":"2026-10-28","s":"bike","t":"Sweet-spot ride","m":60,"k":true,"x":"Indoor or flat road. 15 min warm-up, then 2 x 10 min at 88-93% FTP with 5 min easy between. Cadence 85-95."},{"d":"2026-10-29","s":"swim","t":"CSS intervals","m":45,"k":true,"x":"Warm-up 400 m, then 10-16 x 100 m at CSS pace with 15 s rest. Cool-down 200 m."},{"d":"2026-10-30","s":"run","t":"Easy run + strides","m":40,"k":false,"x":"Easy, heart rate under 155 bpm the whole run, then 6 x 20 s strides. It should feel too slow; that is the point."},{"d":"2026-10-31","s":"bike","t":"Long ride","m":130,"k":true,"x":"2h10 at 60-70% FTP (heart rate 135-150). Keep it steady on climbs: no surges above 85% FTP. Eat 60 g carbs per hour."},{"d":"2026-11-01","s":"run","t":"Long run","m":65,"k":true,"x":"1h05 easy, heart rate under 155 bpm (slower than you think)."}]},{"w":3,"mon":"2026-11-02","p":"Base","rec":false,"h":7.2,"ss":[{"d":"2026-11-02","s":"strength","t":"Strength + mobility","m":30,"k":false,"x":"Squats, lunges, single-leg deadlifts, calf raises, planks, side planks, glute bridges. 3 rounds, controlled. Then 10 min mobility."},{"d":"2026-11-03","s":"swim","t":"Aerobic swim","m":50,"k":false,"x":"Warm-up 300 m, drills 4 x 50 m, main set 4-8 x 200 m steady (CSS + 10 s/100 m), 20 s rest. Cool-down 200 m."},{"d":"2026-11-04","s":"bike","t":"Sweet-spot ride","m":65,"k":true,"x":"Indoor or flat road. 15 min warm-up, then 2 x 10 min at 88-93% FTP with 5 min easy between. Cadence 85-95."},{"d":"2026-11-05","s":"swim","t":"CSS intervals","m":50,"k":true,"x":"Warm-up 400 m, then 10-16 x 100 m at CSS pace with 15 s rest. Cool-down 200 m."},{"d":"2026-11-06","s":"run","t":"Easy run + strides","m":40,"k":false,"x":"Easy, heart rate under 155 bpm the whole run, then 6 x 20 s strides. It should feel too slow; that is the point."},{"d":"2026-11-07","s":"bike","t":"Long ride","m":135,"k":true,"x":"2h15 at 60-70% FTP (heart rate 135-150). Keep it steady on climbs: no surges above 85% FTP. Eat 60 g carbs per hour."},{"d":"2026-11-08","s":"run","t":"Long run","m":65,"k":true,"x":"1h05 easy, heart rate under 155 bpm (slower than you think)."}]},{"w":4,"mon":"2026-11-09","p":"Base","rec":true,"h":4.1,"ss":[{"d":"2026-11-09","s":"rest","t":"Rest","m":0,"k":false,"x":"Full rest. Sleep is training."},{"d":"2026-11-10","s":"swim","t":"Easy swim","m":30,"k":false,"x":"Easy 1,500-2,000 m with drills: catch-up, fingertip drag, 6-kick switch. No hard efforts."},{"d":"2026-11-11","s":"bike","t":"Easy spin","m":40,"k":false,"x":"Easy spin under 65% FTP (heart rate under 146), high cadence 90+."},{"d":"2026-11-12","s":"swim","t":"Easy swim","m":30,"k":false,"x":"Relaxed 1,500 m, mix strokes, practise bilateral breathing."},{"d":"2026-11-13","s":"run","t":"Easy run","m":25,"k":false,"x":"Easy, heart rate under 155. Walk the hills if it climbs."},{"d":"2026-11-14","s":"bike","t":"Endurance ride","m":80,"k":false,"x":"1h20 easy, 60-70% FTP, heart rate under 150. Eat every 20-30 min."},{"d":"2026-11-15","s":"run","t":"Long run (easy)","m":40,"k":false,"x":"Easy, heart rate under 155."}]},{"w":5,"mon":"2026-11-16","p":"Base","rec":false,"h":7.5,"ss":[{"d":"2026-11-16","s":"strength","t":"Strength + mobility","m":30,"k":false,"x":"Squats, lunges, single-leg deadlifts, calf raises, planks, side planks, glute bridges. 3 rounds, controlled. Then 10 min mobility."},{"d":"2026-11-17","s":"swim","t":"Aerobic swim","m":50,"k":false,"x":"Warm-up 300 m, drills 4 x 50 m, main set 4-8 x 200 m steady (CSS + 10 s/100 m), 20 s rest. Cool-down 200 m."},{"d":"2026-11-18","s":"bike","t":"Sweet-spot ride","m":65,"k":true,"x":"Indoor or flat road. 15 min warm-up, then 2 x 10 min at 88-93% FTP with 5 min easy between. Cadence 85-95."},{"d":"2026-11-19","s":"swim","t":"CSS intervals","m":50,"k":true,"x":"Warm-up 400 m, then 10-16 x 100 m at CSS pace with 15 s rest. Cool-down 200 m."},{"d":"2026-11-20","s":"run","t":"Easy run + strides","m":45,"k":false,"x":"Easy, heart rate under 155 bpm the whole run, then 6 x 20 s strides. It should feel too slow; that is the point."},{"d":"2026-11-21","s":"bike","t":"Long ride","m":140,"k":true,"x":"2h20 at 60-70% FTP (heart rate 135-150). Keep it steady on climbs: no surges above 85% FTP. Eat 60 g carbs per hour."},{"d":"2026-11-22","s":"run","t":"Long run","m":70,"k":true,"x":"1h10 easy, heart rate under 155 bpm (slower than you think)."}]},{"w":6,"mon":"2026-11-23","p":"Base","rec":false,"h":7.8,"ss":[{"d":"2026-11-23","s":"strength","t":"Strength + mobility","m":30,"k":false,"x":"Squats, lunges, single-leg deadlifts, calf raises, planks, side planks, glute bridges. 3 rounds, controlled. Then 10 min mobility."},{"d":"2026-11-24","s":"swim","t":"Aerobic swim","m":50,"k":false,"x":"Warm-up 300 m, drills 4 x 50 m, main set 4-8 x 200 m steady (CSS + 10 s/100 m), 20 s rest. Cool-down 200 m."},{"d":"2026-11-25","s":"bike","t":"Sweet-spot ride","m":70,"k":true,"x":"Indoor or flat road. 15 min warm-up, then 3 x 10 min at 88-93% FTP with 5 min easy between. Cadence 85-95."},{"d":"2026-11-26","s":"swim","t":"CSS intervals","m":50,"k":true,"x":"Warm-up 400 m, then 10-16 x 100 m at CSS pace with 15 s rest. Cool-down 200 m."},{"d":"2026-11-27","s":"run","t":"Easy run + strides","m":45,"k":false,"x":"Easy, heart rate under 155 bpm the whole run, then 6 x 20 s strides. It should feel too slow; that is the point."},{"d":"2026-11-28","s":"bike","t":"Long ride","m":150,"k":true,"x":"2h30 at 60-70% FTP (heart rate 135-150). Keep it steady on climbs: no surges above 85% FTP. Eat 60 g carbs per hour."},{"d":"2026-11-29","s":"run","t":"Long run","m":70,"k":true,"x":"1h10 easy, heart rate under 155 bpm (slower than you think)."}]},{"w":7,"mon":"2026-11-30","p":"Base","rec":false,"h":8.2,"ss":[{"d":"2026-11-30","s":"strength","t":"Strength + mobility","m":30,"k":false,"x":"Squats, lunges, single-leg deadlifts, calf raises, planks, side planks, glute bridges. 3 rounds, controlled. Then 10 min mobility."},{"d":"2026-12-01","s":"swim","t":"Aerobic swim","m":55,"k":false,"x":"Warm-up 300 m, drills 4 x 50 m, main set 4-8 x 200 m steady (CSS + 10 s/100 m), 20 s rest. Cool-down 200 m."},{"d":"2026-12-02","s":"bike","t":"Sweet-spot ride","m":70,"k":true,"x":"Indoor or flat road. 15 min warm-up, then 3 x 10 min at 88-93% FTP with 5 min easy between. Cadence 85-95."},{"d":"2026-12-03","s":"swim","t":"CSS intervals","m":55,"k":true,"x":"Warm-up 400 m, then 10-16 x 100 m at CSS pace with 15 s rest. Cool-down 200 m."},{"d":"2026-12-04","s":"run","t":"Easy run + strides","m":45,"k":false,"x":"Easy, heart rate under 155 bpm the whole run, then 6 x 20 s strides. It should feel too slow; that is the point."},{"d":"2026-12-05","s":"bike","t":"Long ride","m":160,"k":true,"x":"2h40 at 60-70% FTP (heart rate 135-150). Keep it steady on climbs: no surges above 85% FTP. Eat 60 g carbs per hour."},{"d":"2026-12-06","s":"run","t":"Long run","m":75,"k":true,"x":"1h15 easy, heart rate under 155 bpm (slower than you think)."}]},{"w":8,"mon":"2026-12-07","p":"Base","rec":true,"h":4.7,"ss":[{"d":"2026-12-07","s":"rest","t":"Rest","m":0,"k":false,"x":"Full rest. Sleep is training."},{"d":"2026-12-08","s":"swim","t":"Easy swim","m":35,"k":false,"x":"Easy 1,500-2,000 m with drills: catch-up, fingertip drag, 6-kick switch. No hard efforts."},{"d":"2026-12-09","s":"bike","t":"Easy spin","m":40,"k":false,"x":"Easy spin under 65% FTP (heart rate under 146), high cadence 90+."},{"d":"2026-12-10","s":"swim","t":"Easy swim","m":35,"k":false,"x":"Relaxed 1,500 m, mix strokes, practise bilateral breathing."},{"d":"2026-12-11","s":"run","t":"Easy run","m":30,"k":false,"x":"Easy, heart rate under 155. Walk the hills if it climbs."},{"d":"2026-12-12","s":"bike","t":"Endurance ride","m":95,"k":false,"x":"1h35 easy, 60-70% FTP, heart rate under 150. Eat every 20-30 min."},{"d":"2026-12-13","s":"run","t":"Long run (easy)","m":45,"k":false,"x":"Easy, heart rate under 155."}]},{"w":9,"mon":"2026-12-14","p":"Base","rec":false,"h":8.4,"ss":[{"d":"2026-12-14","s":"strength","t":"Strength + mobility","m":30,"k":false,"x":"Squats, lunges, single-leg deadlifts, calf raises, planks, side planks, glute bridges. 3 rounds, controlled. Then 10 min mobility."},{"d":"2026-12-15","s":"swim","t":"Aerobic swim","m":55,"k":false,"x":"Warm-up 300 m, drills 4 x 50 m, main set 4-8 x 200 m steady (CSS + 10 s/100 m), 20 s rest. Cool-down 200 m."},{"d":"2026-12-16","s":"bike","t":"Sweet-spot ride","m":70,"k":true,"x":"Indoor or flat road. 15 min warm-up, then 3 x 10 min at 88-93% FTP with 5 min easy between. Cadence 85-95."},{"d":"2026-12-17","s":"swim","t":"CSS intervals","m":55,"k":true,"x":"Warm-up 400 m, then 10-16 x 100 m at CSS pace with 15 s rest. Cool-down 200 m."},{"d":"2026-12-18","s":"run","t":"Easy run + strides","m":50,"k":false,"x":"Easy, heart rate under 155 bpm the whole run, then 6 x 20 s strides. It should feel too slow; that is the point."},{"d":"2026-12-19","s":"bike","t":"Long ride","m":165,"k":true,"x":"2h45 at 60-70% FTP (heart rate 135-150). Keep it steady on climbs: no surges above 85% FTP. Eat 60 g carbs per hour."},{"d":"2026-12-20","s":"run","t":"Long run","m":80,"k":true,"x":"1h20 easy, heart rate under 155 bpm (slower than you think)."}]},{"w":10,"mon":"2026-12-21","p":"Base","rec":false,"h":8.8,"ss":[{"d":"2026-12-21","s":"strength","t":"Strength + mobility","m":30,"k":false,"x":"Squats, lunges, single-leg deadlifts, calf raises, planks, side planks, glute bridges. 3 rounds, controlled. Then 10 min mobility."},{"d":"2026-12-22","s":"swim","t":"Aerobic swim","m":60,"k":false,"x":"Warm-up 300 m, drills 4 x 50 m, main set 4-8 x 200 m steady (CSS + 10 s/100 m), 20 s rest. Cool-down 200 m."},{"d":"2026-12-23","s":"bike","t":"Sweet-spot ride","m":75,"k":true,"x":"Indoor or flat road. 15 min warm-up, then 3 x 10 min at 88-93% FTP with 5 min easy between. Cadence 85-95."},{"d":"2026-12-24","s":"swim","t":"CSS intervals","m":60,"k":true,"x":"Warm-up 400 m, then 10-16 x 100 m at CSS pace with 15 s rest. Cool-down 200 m."},{"d":"2026-12-25","s":"run","t":"Easy run + strides","m":50,"k":false,"x":"Easy, heart rate under 155 bpm the whole run, then 6 x 20 s strides. It should feel too slow; that is the point."},{"d":"2026-12-26","s":"bike","t":"Long ride","m":170,"k":true,"x":"2h50 at 60-70% FTP (heart rate 135-150). Keep it steady on climbs: no surges above 85% FTP. Eat 60 g carbs per hour."},{"d":"2026-12-27","s":"run","t":"Long run","m":80,"k":true,"x":"1h20 easy, heart rate under 155 bpm (slower than you think)."}]},{"w":11,"mon":"2026-12-28","p":"Base","rec":false,"h":9.0,"ss":[{"d":"2026-12-28","s":"strength","t":"Strength + mobility","m":30,"k":false,"x":"Squats, lunges, single-leg deadlifts, calf raises, planks, side planks, glute bridges. 3 rounds, controlled. Then 10 min mobility."},{"d":"2026-12-29","s":"swim","t":"Aerobic swim","m":60,"k":false,"x":"Warm-up 300 m, drills 4 x 50 m, main set 4-8 x 200 m steady (CSS + 10 s/100 m), 20 s rest. Cool-down 200 m."},{"d":"2026-12-30","s":"bike","t":"Sweet-spot ride","m":75,"k":true,"x":"Indoor or flat road. 15 min warm-up, then 3 x 10 min at 88-93% FTP with 5 min easy between. Cadence 85-95."},{"d":"2026-12-31","s":"swim","t":"CSS intervals","m":60,"k":true,"x":"Warm-up 400 m, then 10-16 x 100 m at CSS pace with 15 s rest. Cool-down 200 m."},{"d":"2027-01-01","s":"run","t":"Easy run + strides","m":50,"k":false,"x":"Easy, heart rate under 155 bpm the whole run, then 6 x 20 s strides. It should feel too slow; that is the point."},{"d":"2027-01-02","s":"bike","t":"Long ride","m":180,"k":true,"x":"3h00 at 60-70% FTP (heart rate 135-150). Keep it steady on climbs: no surges above 85% FTP. Eat 60 g carbs per hour."},{"d":"2027-01-03","s":"run","t":"Long run","m":85,"k":true,"x":"1h25 easy, heart rate under 155 bpm (slower than you think)."}]},{"w":12,"mon":"2027-01-04","p":"Base","rec":true,"h":5.3,"ss":[{"d":"2027-01-04","s":"rest","t":"Rest","m":0,"k":false,"x":"Full rest. Sleep is training."},{"d":"2027-01-05","s":"swim","t":"Easy swim","m":35,"k":false,"x":"Easy 1,500-2,000 m with drills: catch-up, fingertip drag, 6-kick switch. No hard efforts."},{"d":"2027-01-06","s":"bike","t":"FTP retest","m":60,"k":true,"x":"Same protocol as week 1: 20 min warm-up, 5 min all-out, 10 min easy, 20 min max steady. FTP = 95% of the 20-min power. Update it on the Race tab."},{"d":"2027-01-07","s":"swim","t":"Easy swim","m":35,"k":false,"x":"Relaxed 1,500 m, mix strokes, practise bilateral breathing."},{"d":"2027-01-08","s":"run","t":"Easy run","m":30,"k":false,"x":"Easy, heart rate under 155. Walk the hills if it climbs."},{"d":"2027-01-09","s":"bike","t":"Endurance ride","m":110,"k":false,"x":"1h50 easy, 60-70% FTP, heart rate under 150. Eat every 20-30 min."},{"d":"2027-01-10","s":"run","t":"Long run (easy)","m":50,"k":false,"x":"Easy, heart rate under 155."}]},{"w":13,"mon":"2027-01-11","p":"Build","rec":false,"h":9.5,"ss":[{"d":"2027-01-11","s":"strength","t":"Strength + mobility","m":30,"k":false,"x":"Squats, lunges, single-leg deadlifts, calf raises, planks, side planks, glute bridges. 3 rounds, controlled. Then 10 min mobility."},{"d":"2027-01-12","s":"swim","t":"Aerobic swim","m":60,"k":false,"x":"Warm-up 400 m, main set 3-4 x 500 m steady with pull buoy on the 2nd and 4th, 30 s rest. Build toward 3,000 m total."},{"d":"2027-01-13","s":"bike","t":"Threshold intervals","m":75,"k":true,"x":"15 min warm-up, then 4 x 8 min at 95-100% FTP, 4 min easy between. Cool-down to finish."},{"d":"2027-01-14","s":"swim","t":"Threshold swim","m":60,"k":true,"x":"Warm-up 400 m, then 5-6 x 300 m at CSS + 3 s/100 m, 20 s rest. Finish with 4 x 50 m fast."},{"d":"2027-01-15","s":"run","t":"Tempo run","m":50,"k":true,"x":"15 min easy, then 3 x 10 min at 163-170 bpm (about 5:00-5:15 /km), 3 min jog between. Easy cool-down."},{"d":"2027-01-16","s":"brick","t":"Long ride + brick run","m":210,"k":true,"x":"3h15 ride, including 3 x 20 min at race power (68-75% FTP). Straight off the bike: 15 min run at Ironman pace. Practise race nutrition: 70-90 g carbs per hour."},{"d":"2027-01-17","s":"run","t":"Long run","m":85,"k":true,"x":"1h25 easy, heart rate under 155 bpm (slower than you think). Last 20 min at Ironman pace."}]},{"w":14,"mon":"2027-01-18","p":"Build","rec":false,"h":9.8,"ss":[{"d":"2027-01-18","s":"strength","t":"Strength + mobility","m":30,"k":false,"x":"Squats, lunges, single-leg deadlifts, calf raises, planks, side planks, glute bridges. 3 rounds, controlled. Then 10 min mobility."},{"d":"2027-01-19","s":"swim","t":"Aerobic swim","m":60,"k":false,"x":"Warm-up 400 m, main set 3-4 x 500 m steady with pull buoy on the 2nd and 4th, 30 s rest. Build toward 3,000 m total."},{"d":"2027-01-20","s":"bike","t":"Threshold intervals","m":75,"k":true,"x":"15 min warm-up, then 4 x 8 min at 95-100% FTP, 4 min easy between. Cool-down to finish."},{"d":"2027-01-21","s":"swim","t":"Threshold swim","m":60,"k":true,"x":"Warm-up 400 m, then 5-6 x 300 m at CSS + 3 s/100 m, 20 s rest. Finish with 4 x 50 m fast."},{"d":"2027-01-22","s":"run","t":"Tempo run","m":50,"k":true,"x":"15 min easy, then 3 x 10 min at 163-170 bpm (about 5:00-5:15 /km), 3 min jog between. Easy cool-down."},{"d":"2027-01-23","s":"brick","t":"Long ride + brick run","m":220,"k":true,"x":"3h25 ride, including 3 x 20 min at race power (68-75% FTP). Straight off the bike: 15 min run at Ironman pace. Practise race nutrition: 70-90 g carbs per hour."},{"d":"2027-01-24","s":"run","t":"Long run","m":90,"k":true,"x":"1h30 easy, heart rate under 155 bpm (slower than you think). Last 20 min at Ironman pace."}]},{"w":15,"mon":"2027-01-25","p":"Build","rec":false,"h":10.2,"ss":[{"d":"2027-01-25","s":"strength","t":"Strength + mobility","m":30,"k":false,"x":"Squats, lunges, single-leg deadlifts, calf raises, planks, side planks, glute bridges. 3 rounds, controlled. Then 10 min mobility."},{"d":"2027-01-26","s":"swim","t":"Aerobic swim","m":60,"k":false,"x":"Warm-up 400 m, main set 3-4 x 500 m steady with pull buoy on the 2nd and 4th, 30 s rest. Build toward 3,000 m total."},{"d":"2027-01-27","s":"bike","t":"Threshold intervals","m":80,"k":true,"x":"15 min warm-up, then 4 x 8 min at 95-100% FTP, 4 min easy between. Cool-down to finish."},{"d":"2027-01-28","s":"swim","t":"Threshold swim","m":65,"k":true,"x":"Warm-up 400 m, then 5-6 x 300 m at CSS + 3 s/100 m, 20 s rest. Finish with 4 x 50 m fast."},{"d":"2027-01-29","s":"run","t":"Tempo run","m":50,"k":true,"x":"15 min easy, then 3 x 10 min at 163-170 bpm (about 5:00-5:15 /km), 3 min jog between. Easy cool-down."},{"d":"2027-01-30","s":"brick","t":"Long ride + brick run","m":240,"k":true,"x":"3h40 ride, including 3 x 20 min at race power (68-75% FTP). Straight off the bike: 20 min run at Ironman pace. Practise race nutrition: 70-90 g carbs per hour."},{"d":"2027-01-31","s":"run","t":"Long run","m":90,"k":true,"x":"1h30 easy, heart rate under 155 bpm (slower than you think). Last 20 min at Ironman pace."}]},{"w":16,"mon":"2027-02-01","p":"Build","rec":true,"h":5.7,"ss":[{"d":"2027-02-01","s":"rest","t":"Rest","m":0,"k":false,"x":"Full rest. Sleep is training."},{"d":"2027-02-02","s":"swim","t":"Easy swim","m":40,"k":false,"x":"Easy 1,500-2,000 m with drills: catch-up, fingertip drag, 6-kick switch. No hard efforts."},{"d":"2027-02-03","s":"bike","t":"Easy spin","m":45,"k":false,"x":"Easy spin under 65% FTP (heart rate under 146), high cadence 90+."},{"d":"2027-02-04","s":"swim","t":"Easy swim","m":40,"k":false,"x":"Relaxed 1,500 m, mix strokes, practise bilateral breathing."},{"d":"2027-02-05","s":"run","t":"Easy run","m":30,"k":false,"x":"Easy, heart rate under 155. Walk the hills if it climbs."},{"d":"2027-02-06","s":"bike","t":"Endurance ride","m":130,"k":false,"x":"2h10 easy, 60-70% FTP, heart rate under 150. Eat every 20-30 min."},{"d":"2027-02-07","s":"run","t":"Long run (easy)","m":55,"k":false,"x":"Easy, heart rate under 155."}]},{"w":17,"mon":"2027-02-08","p":"Build","rec":false,"h":10.7,"ss":[{"d":"2027-02-08","s":"strength","t":"Strength + mobility","m":30,"k":false,"x":"Squats, lunges, single-leg deadlifts, calf raises, planks, side planks, glute bridges. 3 rounds, controlled. Then 10 min mobility."},{"d":"2027-02-09","s":"swim","t":"Aerobic swim","m":65,"k":false,"x":"Warm-up 400 m, main set 3-4 x 500 m steady with pull buoy on the 2nd and 4th, 30 s rest. Build toward 3,000 m total."},{"d":"2027-02-10","s":"bike","t":"Threshold intervals","m":80,"k":true,"x":"15 min warm-up, then 4 x 8 min at 95-100% FTP, 4 min easy between. Cool-down to finish."},{"d":"2027-02-11","s":"swim","t":"Threshold swim","m":65,"k":true,"x":"Warm-up 400 m, then 5-6 x 300 m at CSS + 3 s/100 m, 20 s rest. Finish with 4 x 50 m fast."},{"d":"2027-02-12","s":"run","t":"Tempo run","m":55,"k":true,"x":"15 min easy, then 3 x 10 min at 163-170 bpm (about 5:00-5:15 /km), 3 min jog between. Easy cool-down."},{"d":"2027-02-13","s":"brick","t":"Long ride + brick run","m":250,"k":true,"x":"3h50 ride, including 3 x 20 min at race power (68-75% FTP). Straight off the bike: 20 min run at Ironman pace. Practise race nutrition: 70-90 g carbs per hour."},{"d":"2027-02-14","s":"run","t":"Long run","m":95,"k":true,"x":"1h35 easy, heart rate under 155 bpm (slower than you think). Last 20 min at Ironman pace."}]},{"w":18,"mon":"2027-02-15","p":"Build","rec":false,"h":11.0,"ss":[{"d":"2027-02-15","s":"strength","t":"Strength + mobility","m":30,"k":false,"x":"Squats, lunges, single-leg deadlifts, calf raises, planks, side planks, glute bridges. 3 rounds, controlled. Then 10 min mobility."},{"d":"2027-02-16","s":"swim","t":"Aerobic swim","m":65,"k":false,"x":"Warm-up 400 m, main set 3-4 x 500 m steady with pull buoy on the 2nd and 4th, 30 s rest. Build toward 3,000 m total."},{"d":"2027-02-17","s":"bike","t":"Threshold intervals","m":80,"k":true,"x":"15 min warm-up, then 4 x 8 min at 95-100% FTP, 4 min easy between. Cool-down to finish."},{"d":"2027-02-18","s":"swim","t":"Threshold swim","m":70,"k":true,"x":"Warm-up 400 m, then 5-6 x 300 m at CSS + 3 s/100 m, 20 s rest. Finish with 4 x 50 m fast."},{"d":"2027-02-19","s":"run","t":"Tempo run","m":55,"k":true,"x":"15 min easy, then 3 x 10 min at 163-170 bpm (about 5:00-5:15 /km), 3 min jog between. Easy cool-down."},{"d":"2027-02-20","s":"brick","t":"Long ride + brick run","m":260,"k":true,"x":"4h00 ride, including 3 x 20 min at race power (68-75% FTP). Straight off the bike: 20 min run at Ironman pace. Practise race nutrition: 70-90 g carbs per hour."},{"d":"2027-02-21","s":"run","t":"Long run","m":100,"k":true,"x":"1h40 easy, heart rate under 155 bpm (slower than you think). Last 20 min at Ironman pace."}]},{"w":19,"mon":"2027-02-22","p":"Build","rec":false,"h":11.4,"ss":[{"d":"2027-02-22","s":"strength","t":"Strength + mobility","m":30,"k":false,"x":"Squats, lunges, single-leg deadlifts, calf raises, planks, side planks, glute bridges. 3 rounds, controlled. Then 10 min mobility."},{"d":"2027-02-23","s":"swim","t":"Aerobic swim","m":65,"k":false,"x":"Warm-up 400 m, main set 3-4 x 500 m steady with pull buoy on the 2nd and 4th, 30 s rest. Build toward 3,000 m total."},{"d":"2027-02-24","s":"bike","t":"Threshold intervals","m":85,"k":true,"x":"15 min warm-up, then 4 x 8 min at 95-100% FTP, 4 min easy between. Cool-down to finish."},{"d":"2027-02-25","s":"swim","t":"Threshold swim","m":70,"k":true,"x":"Warm-up 400 m, then 5-6 x 300 m at CSS + 3 s/100 m, 20 s rest. Finish with 4 x 50 m fast."},{"d":"2027-02-26","s":"run","t":"Tempo run","m":55,"k":true,"x":"15 min easy, then 3 x 10 min at 163-170 bpm (about 5:00-5:15 /km), 3 min jog between. Easy cool-down."},{"d":"2027-02-27","s":"brick","t":"Long ride + brick run","m":275,"k":true,"x":"4h10 ride, including 3 x 20 min at race power (68-75% FTP). Straight off the bike: 25 min run at Ironman pace. Practise race nutrition: 70-90 g carbs per hour."},{"d":"2027-02-28","s":"run","t":"Long run","m":105,"k":true,"x":"1h45 easy, heart rate under 155 bpm (slower than you think). Last 20 min at Ironman pace."}]},{"w":20,"mon":"2027-03-01","p":"Build","rec":true,"h":6.2,"ss":[{"d":"2027-03-01","s":"rest","t":"Rest","m":0,"k":false,"x":"Full rest. Sleep is training."},{"d":"2027-03-02","s":"swim","t":"Easy swim","m":40,"k":false,"x":"Easy 1,500-2,000 m with drills: catch-up, fingertip drag, 6-kick switch. No hard efforts."},{"d":"2027-03-03","s":"bike","t":"Easy spin","m":50,"k":false,"x":"Easy spin under 65% FTP (heart rate under 146), high cadence 90+."},{"d":"2027-03-04","s":"swim","t":"Easy swim","m":40,"k":false,"x":"Relaxed 1,500 m, mix strokes, practise bilateral breathing."},{"d":"2027-03-05","s":"run","t":"Easy run","m":35,"k":false,"x":"Easy, heart rate under 155. Walk the hills if it climbs."},{"d":"2027-03-06","s":"bike","t":"Endurance ride","m":150,"k":false,"x":"2h30 easy, 60-70% FTP, heart rate under 150. Eat every 20-30 min."},{"d":"2027-03-07","s":"run","t":"Long run (easy)","m":60,"k":false,"x":"Easy, heart rate under 155."}]},{"w":21,"mon":"2027-03-08","p":"Build","rec":false,"h":11.8,"ss":[{"d":"2027-03-08","s":"strength","t":"Strength + mobility","m":30,"k":false,"x":"Squats, lunges, single-leg deadlifts, calf raises, planks, side planks, glute bridges. 3 rounds, controlled. Then 10 min mobility."},{"d":"2027-03-09","s":"swim","t":"Aerobic swim","m":70,"k":false,"x":"Warm-up 400 m, main set 3-4 x 500 m steady with pull buoy on the 2nd and 4th, 30 s rest. Build toward 3,000 m total."},{"d":"2027-03-10","s":"bike","t":"Threshold intervals","m":85,"k":true,"x":"15 min warm-up, then 4 x 8 min at 95-100% FTP, 4 min easy between. Cool-down to finish."},{"d":"2027-03-11","s":"swim","t":"Threshold swim","m":70,"k":true,"x":"Warm-up 400 m, then 5-6 x 300 m at CSS + 3 s/100 m, 20 s rest. Finish with 4 x 50 m fast."},{"d":"2027-03-12","s":"run","t":"Tempo run","m":60,"k":true,"x":"15 min easy, then 3 x 10 min at 163-170 bpm (about 5:00-5:15 /km), 3 min jog between. Easy cool-down."},{"d":"2027-03-13","s":"brick","t":"Long ride + brick run","m":285,"k":true,"x":"4h20 ride, including 3 x 20 min at race power (68-75% FTP). Straight off the bike: 25 min run at Ironman pace. Practise race nutrition: 70-90 g carbs per hour."},{"d":"2027-03-14","s":"run","t":"Long run","m":110,"k":true,"x":"1h50 easy, heart rate under 155 bpm (slower than you think). Last 20 min at Ironman pace."}]},{"w":22,"mon":"2027-03-15","p":"Build","rec":false,"h":12.3,"ss":[{"d":"2027-03-15","s":"strength","t":"Strength + mobility","m":30,"k":false,"x":"Squats, lunges, single-leg deadlifts, calf raises, planks, side planks, glute bridges. 3 rounds, controlled. Then 10 min mobility."},{"d":"2027-03-16","s":"swim","t":"Aerobic swim","m":70,"k":false,"x":"Warm-up 400 m, main set 3-4 x 500 m steady with pull buoy on the 2nd and 4th, 30 s rest. Build toward 3,000 m total."},{"d":"2027-03-17","s":"bike","t":"Threshold intervals","m":90,"k":true,"x":"15 min warm-up, then 4 x 8 min at 95-100% FTP, 4 min easy between. Cool-down to finish."},{"d":"2027-03-18","s":"swim","t":"Threshold swim","m":75,"k":true,"x":"Warm-up 400 m, then 5-6 x 300 m at CSS + 3 s/100 m, 20 s rest. Finish with 4 x 50 m fast."},{"d":"2027-03-19","s":"run","t":"Tempo run","m":60,"k":true,"x":"15 min easy, then 3 x 10 min at 163-170 bpm (about 5:00-5:15 /km), 3 min jog between. Easy cool-down."},{"d":"2027-03-20","s":"brick","t":"Long ride + brick run","m":305,"k":true,"x":"4h35 ride, including 3 x 20 min at race power (68-75% FTP). Straight off the bike: 30 min run at Ironman pace. Practise race nutrition: 70-90 g carbs per hour."},{"d":"2027-03-21","s":"run","t":"Long run","m":110,"k":true,"x":"1h50 easy, heart rate under 155 bpm (slower than you think). Last 20 min at Ironman pace."}]},{"w":23,"mon":"2027-03-22","p":"Build","rec":false,"h":12.6,"ss":[{"d":"2027-03-22","s":"strength","t":"Strength + mobility","m":30,"k":false,"x":"Squats, lunges, single-leg deadlifts, calf raises, planks, side planks, glute bridges. 3 rounds, controlled. Then 10 min mobility."},{"d":"2027-03-23","s":"swim","t":"Aerobic swim","m":70,"k":false,"x":"Warm-up 400 m, main set 3-4 x 500 m steady with pull buoy on the 2nd and 4th, 30 s rest. Build toward 3,000 m total."},{"d":"2027-03-24","s":"bike","t":"Threshold intervals","m":90,"k":true,"x":"15 min warm-up, then 4 x 8 min at 95-100% FTP, 4 min easy between. Cool-down to finish."},{"d":"2027-03-25","s":"swim","t":"Threshold swim","m":75,"k":true,"x":"Warm-up 400 m, then 5-6 x 300 m at CSS + 3 s/100 m, 20 s rest. Finish with 4 x 50 m fast."},{"d":"2027-03-26","s":"run","t":"Tempo run","m":60,"k":true,"x":"15 min easy, then 3 x 10 min at 163-170 bpm (about 5:00-5:15 /km), 3 min jog between. Easy cool-down."},{"d":"2027-03-27","s":"brick","t":"Long ride + brick run","m":315,"k":true,"x":"4h45 ride, including 3 x 20 min at race power (68-75% FTP). Straight off the bike: 30 min run at Ironman pace. Practise race nutrition: 70-90 g carbs per hour."},{"d":"2027-03-28","s":"run","t":"Long run","m":115,"k":true,"x":"1h55 easy, heart rate under 155 bpm (slower than you think). Last 20 min at Ironman pace."}]},{"w":24,"mon":"2027-03-29","p":"Build","rec":true,"h":7.0,"ss":[{"d":"2027-03-29","s":"rest","t":"Rest","m":0,"k":false,"x":"Full rest. Sleep is training."},{"d":"2027-03-30","s":"swim","t":"Easy swim","m":40,"k":false,"x":"Easy 1,500-2,000 m with drills: catch-up, fingertip drag, 6-kick switch. No hard efforts."},{"d":"2027-03-31","s":"bike","t":"FTP retest","m":60,"k":true,"x":"Same protocol as week 1: 20 min warm-up, 5 min all-out, 10 min easy, 20 min max steady. FTP = 95% of the 20-min power. Update it on the Race tab."},{"d":"2027-04-01","s":"swim","t":"Easy swim","m":45,"k":false,"x":"Relaxed 1,500 m, mix strokes, practise bilateral breathing."},{"d":"2027-04-02","s":"run","t":"Easy run","m":35,"k":false,"x":"Easy, heart rate under 155. Walk the hills if it climbs."},{"d":"2027-04-03","s":"bike","t":"Endurance ride","m":170,"k":false,"x":"2h50 easy, 60-70% FTP, heart rate under 150. Eat every 20-30 min."},{"d":"2027-04-04","s":"run","t":"Long run (easy)","m":70,"k":false,"x":"Easy, heart rate under 155."}]},{"w":25,"mon":"2027-04-05","p":"Peak","rec":false,"h":12.3,"ss":[{"d":"2027-04-05","s":"rest","t":"Rest","m":0,"k":false,"x":"Full rest. Sleep is training."},{"d":"2027-04-06","s":"swim","t":"Aerobic swim","m":70,"k":false,"x":"Warm-up 400 m, then 2 x 1,500 m continuous at race pace with sighting every 6 strokes. Open water from May if the lake is warm enough."},{"d":"2027-04-07","s":"bike","t":"Race-power block","m":90,"k":true,"x":"15 min warm-up, 2 x 30 min at 75-80% FTP (just above race power), 5 min easy between."},{"d":"2027-04-08","s":"swim","t":"Long swim","m":70,"k":true,"x":"Continuous 3,000-3,800 m at race pace. Wetsuit in open water when possible."},{"d":"2027-04-09","s":"run","t":"Race-pace run","m":60,"k":true,"x":"15 min easy, then 30-40 min at Ironman pace (5:50-6:00 /km, 150-158 bpm). Easy cool-down."},{"d":"2027-04-10","s":"brick","t":"Race simulation brick","m":330,"k":true,"x":"5h00 ride, last 2/3 at race power (68-72% FTP) on hilly terrain. Then 30 min run at Ironman pace. Full race nutrition and kit."},{"d":"2027-04-11","s":"run","t":"Long run","m":120,"k":true,"x":"2h00 easy, heart rate under 155 bpm (slower than you think). Practise race fuelling: gel every 30-40 min."}]},{"w":26,"mon":"2027-04-12","p":"Peak","rec":false,"h":12.7,"ss":[{"d":"2027-04-12","s":"rest","t":"Rest","m":0,"k":false,"x":"Full rest. Sleep is training."},{"d":"2027-04-13","s":"swim","t":"Aerobic swim","m":70,"k":false,"x":"Warm-up 400 m, then 2 x 1,500 m continuous at race pace with sighting every 6 strokes. Open water from May if the lake is warm enough."},{"d":"2027-04-14","s":"bike","t":"Race-power block","m":90,"k":true,"x":"15 min warm-up, 2 x 30 min at 75-80% FTP (just above race power), 5 min easy between."},{"d":"2027-04-15","s":"swim","t":"Long swim","m":70,"k":true,"x":"Continuous 3,000-3,800 m at race pace. Wetsuit in open water when possible."},{"d":"2027-04-16","s":"run","t":"Race-pace run","m":60,"k":true,"x":"15 min easy, then 30-40 min at Ironman pace (5:50-6:00 /km, 150-158 bpm). Easy cool-down."},{"d":"2027-04-17","s":"brick","t":"Race simulation brick","m":345,"k":true,"x":"5h10 ride, last 2/3 at race power (68-72% FTP) on hilly terrain. Then 35 min run at Ironman pace. Full race nutrition and kit."},{"d":"2027-04-18","s":"run","t":"Long run","m":125,"k":true,"x":"2h05 easy, heart rate under 155 bpm (slower than you think). Practise race fuelling: gel every 30-40 min."}]},{"w":27,"mon":"2027-04-19","p":"Peak","rec":false,"h":13.1,"ss":[{"d":"2027-04-19","s":"rest","t":"Rest","m":0,"k":false,"x":"Full rest. Sleep is training."},{"d":"2027-04-20","s":"swim","t":"Aerobic swim","m":70,"k":false,"x":"Warm-up 400 m, then 2 x 1,500 m continuous at race pace with sighting every 6 strokes. Open water from May if the lake is warm enough."},{"d":"2027-04-21","s":"bike","t":"Race-power block","m":90,"k":true,"x":"15 min warm-up, 2 x 30 min at 75-80% FTP (just above race power), 5 min easy between."},{"d":"2027-04-22","s":"swim","t":"Long swim","m":75,"k":true,"x":"Continuous 3,000-3,800 m at race pace. Wetsuit in open water when possible."},{"d":"2027-04-23","s":"run","t":"Race-pace run","m":60,"k":true,"x":"15 min easy, then 30-40 min at Ironman pace (5:50-6:00 /km, 150-158 bpm). Easy cool-down."},{"d":"2027-04-24","s":"brick","t":"Race simulation brick","m":360,"k":true,"x":"5h25 ride, last 2/3 at race power (68-72% FTP) on hilly terrain. Then 35 min run at Ironman pace. Full race nutrition and kit."},{"d":"2027-04-25","s":"run","t":"Long run","m":130,"k":true,"x":"2h10 easy, heart rate under 155 bpm (slower than you think). Practise race fuelling: gel every 30-40 min."}]},{"w":28,"mon":"2027-04-26","p":"Peak","rec":true,"h":7.6,"ss":[{"d":"2027-04-26","s":"rest","t":"Rest","m":0,"k":false,"x":"Full rest. Sleep is training."},{"d":"2027-04-27","s":"swim","t":"Easy swim","m":45,"k":false,"x":"Easy 1,500-2,000 m with drills: catch-up, fingertip drag, 6-kick switch. No hard efforts."},{"d":"2027-04-28","s":"bike","t":"Easy spin","m":55,"k":false,"x":"Easy spin under 65% FTP (heart rate under 146), high cadence 90+."},{"d":"2027-04-29","s":"swim","t":"Easy swim","m":45,"k":false,"x":"Relaxed 1,500 m, mix strokes, practise bilateral breathing."},{"d":"2027-04-30","s":"run","t":"Easy run","m":35,"k":false,"x":"Easy, heart rate under 155. Walk the hills if it climbs."},{"d":"2027-05-01","s":"bike","t":"Endurance ride","m":195,"k":false,"x":"3h15 easy, 60-70% FTP, heart rate under 150. Eat every 20-30 min."},{"d":"2027-05-02","s":"run","t":"Long run (easy)","m":80,"k":false,"x":"Easy, heart rate under 155."}]},{"w":29,"mon":"2027-05-03","p":"Peak","rec":false,"h":13.7,"ss":[{"d":"2027-05-03","s":"rest","t":"Rest","m":0,"k":false,"x":"Full rest. Sleep is training."},{"d":"2027-05-04","s":"swim","t":"Aerobic swim","m":75,"k":false,"x":"Warm-up 400 m, then 2 x 1,500 m continuous at race pace with sighting every 6 strokes. Open water from May if the lake is warm enough."},{"d":"2027-05-05","s":"bike","t":"Race-power block","m":90,"k":true,"x":"15 min warm-up, 2 x 30 min at 75-80% FTP (just above race power), 5 min easy between."},{"d":"2027-05-06","s":"swim","t":"Long swim","m":75,"k":true,"x":"Continuous 3,000-3,800 m at race pace. Wetsuit in open water when possible."},{"d":"2027-05-07","s":"run","t":"Race-pace run","m":65,"k":true,"x":"15 min easy, then 30-40 min at Ironman pace (5:50-6:00 /km, 150-158 bpm). Easy cool-down."},{"d":"2027-05-08","s":"brick","t":"Race simulation brick","m":375,"k":true,"x":"5h35 ride, last 2/3 at race power (68-72% FTP) on hilly terrain. Then 40 min run at Ironman pace. Full race nutrition and kit."},{"d":"2027-05-09","s":"run","t":"Long run","m":140,"k":true,"x":"2h20 easy, heart rate under 155 bpm (slower than you think). Practise race fuelling: gel every 30-40 min."}]},{"w":30,"mon":"2027-05-10","p":"Peak","rec":false,"h":14.1,"ss":[{"d":"2027-05-10","s":"rest","t":"Rest","m":0,"k":false,"x":"Full rest. Sleep is training."},{"d":"2027-05-11","s":"swim","t":"Aerobic swim","m":75,"k":false,"x":"Warm-up 400 m, then 2 x 1,500 m continuous at race pace with sighting every 6 strokes. Open water from May if the lake is warm enough."},{"d":"2027-05-12","s":"bike","t":"Race-power block","m":90,"k":true,"x":"15 min warm-up, 2 x 30 min at 75-80% FTP (just above race power), 5 min easy between."},{"d":"2027-05-13","s":"swim","t":"Long swim","m":80,"k":true,"x":"Continuous 3,000-3,800 m at race pace. Wetsuit in open water when possible."},{"d":"2027-05-14","s":"run","t":"Race-pace run","m":65,"k":true,"x":"15 min easy, then 30-40 min at Ironman pace (5:50-6:00 /km, 150-158 bpm). Easy cool-down."},{"d":"2027-05-15","s":"brick","t":"Race simulation brick","m":390,"k":true,"x":"5h50 ride, last 2/3 at race power (68-72% FTP) on hilly terrain. Then 40 min run at Ironman pace. Full race nutrition and kit."},{"d":"2027-05-16","s":"run","t":"Long run","m":145,"k":true,"x":"2h25 easy, heart rate under 155 bpm (slower than you think). Practise race fuelling: gel every 30-40 min."}]},{"w":31,"mon":"2027-05-17","p":"Peak","rec":false,"h":14.4,"ss":[{"d":"2027-05-17","s":"rest","t":"Rest","m":0,"k":false,"x":"Full rest. Sleep is training."},{"d":"2027-05-18","s":"swim","t":"Aerobic swim","m":75,"k":false,"x":"Warm-up 400 m, then 2 x 1,500 m continuous at race pace with sighting every 6 strokes. Open water from May if the lake is warm enough."},{"d":"2027-05-19","s":"bike","t":"Race-power block","m":90,"k":true,"x":"15 min warm-up, 2 x 30 min at 75-80% FTP (just above race power), 5 min easy between."},{"d":"2027-05-20","s":"swim","t":"Long swim","m":80,"k":true,"x":"Continuous 3,000-3,800 m at race pace. Wetsuit in open water when possible."},{"d":"2027-05-21","s":"run","t":"Race-pace run","m":65,"k":true,"x":"15 min easy, then 30-40 min at Ironman pace (5:50-6:00 /km, 150-158 bpm). Easy cool-down."},{"d":"2027-05-22","s":"brick","t":"Race simulation brick","m":405,"k":true,"x":"6h00 ride, last 2/3 at race power (68-72% FTP) on hilly terrain. Then 45 min run at Ironman pace. Full race nutrition and kit."},{"d":"2027-05-23","s":"run","t":"Long run","m":150,"k":true,"x":"2h30 easy, heart rate under 155 bpm (slower than you think). Practise race fuelling: gel every 30-40 min."}]},{"w":32,"mon":"2027-05-24","p":"Taper","rec":false,"h":8.7,"ss":[{"d":"2027-05-24","s":"rest","t":"Rest","m":0,"k":false,"x":"Full rest."},{"d":"2027-05-25","s":"swim","t":"Race-pace swim","m":60,"k":true,"x":"Warm-up 400 m, then 8 x 200 m at race pace (CSS + 8 s/100 m), 20 s rest. Open water if possible."},{"d":"2027-05-26","s":"bike","t":"Race-power intervals","m":75,"k":true,"x":"3 x 15 min at 70-75% FTP, 5 min easy between."},{"d":"2027-05-27","s":"run","t":"Steady run","m":50,"k":false,"x":"Easy run under 155 bpm, last 10 min at race pace (5:50-6:00 /km)."},{"d":"2027-05-28","s":"swim","t":"Easy swim","m":45,"k":false,"x":"Relaxed 1,500-2,000 m, focus on long strokes and sighting."},{"d":"2027-05-29","s":"brick","t":"Long ride + short run","m":200,"k":true,"x":"3h00 ride at race power (68-72% FTP), then 20 min run at race pace. Practise race nutrition."},{"d":"2027-05-30","s":"run","t":"Long run","m":90,"k":false,"x":"Easy, under 155 bpm."}]},{"w":33,"mon":"2027-05-31","p":"Taper","rec":false,"h":6.2,"ss":[{"d":"2027-05-31","s":"rest","t":"Rest","m":0,"k":false,"x":"Full rest."},{"d":"2027-06-01","s":"swim","t":"Race-pace swim","m":45,"k":true,"x":"Warm-up 400 m, then 6 x 200 m at race pace (CSS + 8 s/100 m), 20 s rest. Open water if possible."},{"d":"2027-06-02","s":"bike","t":"Race-power intervals","m":60,"k":true,"x":"2 x 15 min at 70-75% FTP, 5 min easy between."},{"d":"2027-06-03","s":"run","t":"Steady run","m":40,"k":false,"x":"Easy run under 155 bpm, last 10 min at race pace (5:50-6:00 /km)."},{"d":"2027-06-04","s":"swim","t":"Easy swim","m":35,"k":false,"x":"Relaxed 1,500-2,000 m, focus on long strokes and sighting."},{"d":"2027-06-05","s":"brick","t":"Long ride + short run","m":135,"k":true,"x":"2h00 ride at race power (68-72% FTP), then 15 min run at race pace. Practise race nutrition."},{"d":"2027-06-06","s":"run","t":"Long run","m":60,"k":false,"x":"Easy, under 155 bpm."}]},{"w":34,"mon":"2027-06-07","p":"Taper","rec":false,"h":2.0,"ss":[{"d":"2027-06-07","s":"rest","t":"Rest","m":0,"k":false,"x":"Travel to Klagenfurt if you can. Hydrate, sleep, keep legs up."},{"d":"2027-06-08","s":"swim","t":"Openers swim","m":30,"k":false,"x":"Easy 1,200 m with 6 x 50 m at race effort. Swim in the Wörthersee if you are already there."},{"d":"2027-06-09","s":"bike","t":"Openers ride","m":45,"k":false,"x":"Easy spin with 3 x 3 min at race power (70% FTP). Check gears, brakes, tyres."},{"d":"2027-06-10","s":"run","t":"Openers run","m":25,"k":false,"x":"Easy 20 min with 4 x 20 s strides."},{"d":"2027-06-11","s":"rest","t":"Rest + registration","m":0,"k":false,"x":"Athlete check-in, race briefing. Lay out all three bags."},{"d":"2027-06-12","s":"bike","t":"Shakeout + bike check-in","m":20,"k":false,"x":"10 min spin, 10 min jog, 5 min swim if allowed. Rack the bike. Carb-load meals today."},{"d":"2027-06-13","s":"race","t":"IRONMAN Kärnten-Klagenfurt","m":720,"k":true,"x":"3.8 km swim · 180.2 km bike · 42.2 km run. Start 06:30. Follow the pacing plan on the Race tab."}]}];
+const RACE = "2027-06-13";
+const SPORT = {swim:{n:"Swim",c:"var(--swim)"},bike:{n:"Bike",c:"var(--bike)"},run:{n:"Run",c:"var(--run)"},brick:{n:"Brick",c:"var(--bike)"},strength:{n:"Strength",c:"var(--other)"},rest:{n:"Rest",c:"var(--line)"},race:{n:"Race",c:"var(--lake)"},other:{n:"Other",c:"var(--other)"}};
+const LS = {get(k, d){ try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch(e){ return d; } }, set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch(e){ return false; } }};
+const S = {acts:[], well:[], checkins:LS.get("checkins", {}), settings:LS.get("settings", {}), sync:null};
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const ymd = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+const parse = s => { const [y,m,d] = s.split("-").map(Number); return new Date(y, m-1, d); };
+const addDays = (s, n) => { const d = parse(s); d.setDate(d.getDate()+n); return ymd(d); };
+const TODAY = ymd(new Date());
+const DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const fmtDay = s => { const d = parse(s); return `${DOW[d.getDay()]} ${d.getDate()} ${d.toLocaleString("en-GB",{month:"short"})}`; };
+const hm = m => { m = Math.round(m); return m >= 60 ? `${Math.floor(m/60)}h${String(m%60).padStart(2,"0")}` : `${m} min`; };
+const mmss = x => { const t = Math.round(x*60); return `${Math.floor(t/60)}:${String(t%60).padStart(2,"0")}`; };
+const allSessions = PLAN.flatMap(w => w.ss.map(s => ({...s, w:w.w})));
+const weekOf = d => PLAN.find(w => d >= w.mon && d <= addDays(w.mon, 6));
+let curWeek = (weekOf(TODAY) || (TODAY < PLAN[0].mon ? PLAN[0] : PLAN[PLAN.length-1])).w;
+
+function actsOn(d){ return S.acts.filter(a => a.date === d); }
+function sessionStatus(s){
+  if (s.s === "rest") return null;
+  const a = actsOn(s.d);
+  const want = s.s === "brick" ? ["bike","run"] : s.s === "strength" ? ["other"] : s.s === "race" ? ["swim","bike","run"] : [s.s];
+  const got = a.filter(x => want.includes(x.sport));
+  const mins = got.reduce((t,x) => t + (x.min||0), 0);
+  if (got.length && (mins >= s.m*0.7 || s.s === "strength")) return {k:"done", t:"Done", mins};
+  if (got.length) return {k:"part", t:`Partly · ${hm(mins)}`, mins};
+  if (s.d < TODAY) return {k:"miss", t:"Missed"};
+  return null;
+}
+function chip(st){ return st ? `<span class="chip ${st.k}">${esc(st.t)}</span>` : ""; }
+
+/* ---------- header ---------- */
+function renderHeader(){
+  const days = Math.round((parse(RACE) - parse(TODAY)) / 864e5);
+  $("daysLeft").textContent = days;
+  const w = weekOf(TODAY);
+  $("phaseLine").textContent = w ? `Week ${w.w} of 34 · ${w.p}${w.rec ? " (lighter week)" : ""} · goal about 12 hours`
+    : TODAY < PLAN[0].mon ? `Plan starts Monday 19 October · goal about 12 hours` : `Race week done`;
+  $("syncLine").textContent = S.sync?.lastSync ? `Garmin synced ${fmtDay(S.sync.lastSync.slice(0,10))}` : "";
+}
+
+/* ---------- readiness ---------- */
+function readiness(){
+  const w = [...S.well].sort((a,b) => a.date < b.date ? 1 : -1);
+  if (!w.length) return `<div class="empty">Recovery data appears here after the first Garmin sync.</div>`;
+  const last = w[0], prev = w.slice(1, 8).filter(x => x.rhr);
+  const base = prev.length ? prev.reduce((t,x) => t + x.rhr, 0) / prev.length : null;
+  const flags = [];
+  if (base && last.rhr >= base + 5) flags.push(`resting HR ${last.rhr} is ${Math.round(last.rhr - base)} above your 7-day average`);
+  if (last.sleepH != null && last.sleepH < 6) flags.push(`only ${last.sleepH} h sleep`);
+  if (last.bbHigh != null && last.bbHigh < 35) flags.push(`Body Battery peaked at ${last.bbHigh}`);
+  const ck = S.checkins[last.date] || S.checkins[addDays(TODAY,-1)];
+  if (ck && ck.feel <= 2) flags.push(`you rated yesterday ${ck.feel}/5`);
+  const lvl = flags.length >= 2 ? {c:"var(--bad)",l:"Rest",t:"Swap today for rest or a 30-minute easy spin. Two warning signs together usually mean fatigue or illness is building."}
+    : flags.length === 1 ? {c:"var(--warn)",l:"Easy",t:"Do today's session but keep it all easy. Drop the intervals and stay under 150 bpm."}
+    : {c:"var(--good)",l:"Go",t:"Recovery looks normal. Train as planned."};
+  return `<div class="status"><div class="dot" style="--c:${lvl.c}">${lvl.l}</div><div><h2 style="font-size:22px">Recovery check</h2><div>${esc(lvl.t)}</div>${flags.length ? `<div class="muted" style="font-size:14px">Because ${esc(flags.join("; "))}.</div>` : ""}</div></div>
+  <div class="stats">
+    <div class="stat"><span class="lbl">Resting HR</span><b>${last.rhr ?? "–"}</b><span class="muted" style="font-size:12px">avg ${base ? Math.round(base) : "–"}</span></div>
+    <div class="stat"><span class="lbl">Sleep</span><b>${last.sleepH != null ? last.sleepH + " h" : "–"}</b><span class="muted" style="font-size:12px">${fmtDay(last.date)}</span></div>
+    <div class="stat"><span class="lbl">Body Battery</span><b>${last.bbHigh ?? "–"}<span class="muted"> / ${last.bbLow ?? "–"}</span></b><span class="muted" style="font-size:12px">high / low</span></div>
+    <div class="stat"><span class="lbl">Stress</span><b>${last.stress ?? "–"}</b><span class="muted" style="font-size:12px">daily average</span></div>
+  </div>`;
+}
+
+function sessCard(s, big){
+  const sp = SPORT[s.s];
+  const st = sessionStatus(s);
+  return `<div class="panel sess" style="--c:${sp.c}"><div class="bar"></div><div style="min-width:0">
+    <div class="row" style="gap:8px"><span class="tag" style="--c:${sp.c}">${sp.n}</span>${s.m ? `<span class="chip num">${hm(s.m)}</span>` : ""}${s.k ? `<span class="chip key">Key session</span>` : ""}${chip(st)}</div>
+    <h3 style="margin-top:6px">${esc(s.t)}</h3><p>${esc(s.x)}</p></div></div>`;
+}
+
+function actLine(a){
+  const sp = SPORT[a.sport] || SPORT.other;
+  let pace = "";
+  if (a.sport === "run" && a.pace) pace = `${mmss(a.pace)} /km`;
+  if (a.sport === "swim" && a.pace) pace = `${mmss(a.pace)} /100 m`;
+  if (a.sport === "bike") pace = `${a.kmh ?? "–"} km/h${a.np ? ` · NP ${Math.round(a.np)} W` : ""}`;
+  return `<div class="act"><span class="tag" style="--c:${sp.c}">${sp.n}</span><span class="num">${a.km ? a.km.toFixed(a.sport==="swim"?2:1) + " km · " : ""}${hm(a.min||0)}${pace ? " · " + pace : ""}</span><span class="num muted">${a.hr ? Math.round(a.hr) + " bpm" : ""}</span></div>`;
+}
+
+function renderToday(){
+  $("readiness").innerHTML = readiness();
+  let todays = allSessions.filter(s => s.d === TODAY);
+  let html = "";
+  if (!todays.length){
+    const next = allSessions.find(s => s.d > TODAY && s.s !== "rest");
+    html = `<div class="panel note"><h2 style="font-size:22px">Before the plan starts</h2><p style="margin:6px 0 0">Until Monday 19 October, keep it light: one easy run under 155 bpm and an easy spin or swim. Go into week 1 fresh, because it opens with your bike FTP test and swim CSS test.</p></div>`;
+    if (next) html += `<div class="lbl">Next up · ${fmtDay(next.d)}</div>` + sessCard(next);
+  } else {
+    html = `<div class="lbl">Today · ${fmtDay(TODAY)}</div>` + todays.map(s => sessCard(s, true)).join("");
+    const tom = allSessions.filter(s => s.d === addDays(TODAY,1));
+    if (tom.length) html += `<div class="muted" style="font-size:14px">Tomorrow: ${tom.map(s => `${esc(s.t)}${s.m ? " (" + hm(s.m) + ")" : ""}`).join(", ")}</div>`;
+  }
+  $("todaySessions").innerHTML = html;
+
+  const y = addDays(TODAY,-1);
+  const ys = allSessions.filter(s => s.d === y && s.s !== "rest");
+  const ya = actsOn(y);
+  let lastDone = ya.length ? ya : null, label = `Yesterday · ${fmtDay(y)}`;
+  if (!lastDone){ const recent = [...S.acts].sort((a,b) => a.date < b.date ? 1 : -1); if (recent.length){ const d = recent[0].date; lastDone = actsOn(d); label = `Last training · ${fmtDay(d)}`; } }
+  $("yesterday").innerHTML = `<div class="row between"><h2 style="font-size:22px">${label}</h2>${ys.length ? `<span class="muted" style="font-size:14px">Planned: ${ys.map(s => esc(s.t)).join(", ")}</span>` : ""}</div>` +
+    (lastDone ? `<div style="margin-top:8px">${lastDone.map(actLine).join("")}</div>${coach(lastDone, ys)}` : `<div class="empty" style="margin-top:8px">No activities synced yet.</div>`);
+
+  $("ciDate").textContent = fmtDay(TODAY);
+  const ck = S.checkins[TODAY] || {};
+  $("feel").innerHTML = [1,2,3,4,5].map(n => `<button type="button" data-feel="${n}" aria-pressed="${(feelSel ?? ck.feel) === n}">${n}</button>`).join("");
+  if (document.activeElement !== $("ciNote")) $("ciNote").value = ck.note || "";
+}
+
+function coach(acts, planned){
+  const tips = [];
+  acts.forEach(a => {
+    const easyPlanned = planned.some(s => s.s === a.sport && !s.k) || planned.some(s => /Long run|Easy/.test(s.t) && a.sport === "run");
+    if (a.sport === "run" && a.hr > 160 && (easyPlanned || !planned.length)) tips.push(`That run averaged ${Math.round(a.hr)} bpm. Easy runs should stay under 155, even if it means 6:30 /km or walking hills.`);
+    if (a.sport === "run" && a.hr && a.hr <= 155) tips.push(`Good control on the run: ${Math.round(a.hr)} bpm average is right in the aerobic zone.`);
+    if (a.sport === "bike" && a.maxHr > 185) tips.push(`Heart rate hit ${Math.round(a.maxHr)} on the bike. On long rides, ease off on climbs to keep it under 160.`);
+  });
+  return tips.length ? `<div class="note" style="margin-top:10px">${tips.slice(0,2).map(esc).join(" ")}</div>` : "";
+}
+
+/* ---------- week ---------- */
+function renderWeek(){
+  const w = PLAN[curWeek-1];
+  $("wkTitle").textContent = `Week ${w.w} · ${w.p}${w.rec ? " · lighter" : ""}`;
+  $("wkSub").textContent = `${fmtDay(w.mon)} – ${fmtDay(addDays(w.mon,6))} · ${w.h} h planned`;
+  $("wkPrev").disabled = w.w === 1; $("wkNext").disabled = w.w === 34;
+  const tot = {swim:[0,0],bike:[0,0],run:[0,0]};
+  w.ss.forEach(s => { if (s.s === "brick"){ const b = s.x.match(/(\d+) min run/); const r = b ? +b[1] : 0; tot.bike[0] += s.m - r; tot.run[0] += r; } else if (tot[s.s]) tot[s.s][0] += s.m; });
+  for (let i = 0; i < 7; i++) actsOn(addDays(w.mon,i)).forEach(a => { if (tot[a.sport]) tot[a.sport][1] += a.min || 0; });
+  $("wkTotals").innerHTML = ["swim","bike","run"].map(k => { const [p,d] = tot[k]; const pct = p ? Math.min(100, d/p*100) : 0;
+    return `<div style="--c:${SPORT[k].c}"><span class="lbl">${SPORT[k].n}</span><div class="num">${hm(d)} <span class="muted">/ ${hm(p)}</span></div><div class="meter"><i style="width:${pct}%"></i></div></div>`; }).join("");
+  let html = "";
+  for (let i = 0; i < 7; i++){
+    const d = addDays(w.mon,i);
+    const ss = w.ss.filter(s => s.d === d);
+    const extra = actsOn(d).filter(a => !ss.some(s => s.s === a.sport || (s.s === "brick" && ["bike","run"].includes(a.sport))));
+    html += `<div class="day${d === TODAY ? " today" : ""}"><div class="dname">${DOW[parse(d).getDay()]}<small>${parse(d).getDate()}.${parse(d).getMonth()+1}.</small></div><div style="display:grid;gap:6px;min-width:0">` +
+      ss.map(s => `<details><summary class="item" style="cursor:pointer;list-style:none"><span class="sw" style="--c:${SPORT[s.s].c}"></span><span class="t">${esc(s.t)}</span>${s.m ? `<span class="num muted">${hm(s.m)}</span>` : ""}${s.k ? `<span class="chip key">Key</span>` : ""}${chip(sessionStatus(s))}</summary><p style="margin:4px 0 0 16px;max-width:60ch">${esc(s.x)}</p></details>`).join("") +
+      extra.map(a => `<div class="item muted"><span class="sw" style="--c:${(SPORT[a.sport]||SPORT.other).c}"></span>Extra: ${(SPORT[a.sport]||SPORT.other).n} ${hm(a.min||0)}</div>`).join("") +
+      `</div></div>`;
+  }
+  $("wkDays").innerHTML = html;
+}
+
+/* ---------- plan ---------- */
+function renderPlan(){
+  const max = Math.max(...PLAN.map(w => w.h));
+  const PC = {Base:"var(--swim)",Build:"var(--bike)",Peak:"var(--run)",Taper:"var(--lake)"};
+  let html = "", lastP = "";
+  PLAN.forEach(w => {
+    if (w.p !== lastP){ html += `<h2 class="phasehead" style="font-size:20px;color:${PC[w.p]}">${w.p}</h2>`; lastP = w.p; }
+    const now = weekOf(TODAY)?.w === w.w;
+    const done = (() => { let m = 0; for (let i = 0; i < 7; i++) actsOn(addDays(w.mon,i)).forEach(a => m += a.min || 0); return m/60; })();
+    html += `<button class="weekrow${now ? " now" : ""}" data-week="${w.w}"><span class="num">W${w.w}</span><span class="muted" style="font-size:13px">${fmtDay(w.mon).slice(4)}</span>
+      <span style="position:relative"><span class="hb" style="display:block;width:${w.h/max*100}%;--c:${PC[w.p]};opacity:${w.rec ? .45 : .9}"></span>${done ? `<span style="position:absolute;left:0;top:3px;height:6px;width:${Math.min(done,max)/max*100}%;background:var(--ink);border-radius:3px"></span>` : ""}</span>
+      <span class="num" style="text-align:right">${w.h}h</span></button>`;
+  });
+  $("planList").innerHTML = `<div class="muted" style="font-size:13px;margin-bottom:6px">Bars show planned hours; the dark line shows what you did. Tap a week to open it.</div>` + html;
+}
+
+/* ---------- progress ---------- */
+function weekHours(mon){
+  const t = {swim:0,bike:0,run:0,other:0};
+  for (let i = 0; i < 7; i++) actsOn(addDays(mon,i)).forEach(a => { t[a.sport in t ? a.sport : "other"] += (a.min||0)/60; });
+  return t;
+}
+function renderProgress(){
+  // weekly hours, last 16 weeks ending this week (Monday-based)
+  const d = parse(TODAY); const mon0 = addDays(TODAY, -((d.getDay()+6)%7));
+  const weeks = []; for (let i = 15; i >= 0; i--) weeks.push(addDays(mon0, -7*i));
+  const data = weeks.map(m => ({m, t:weekHours(m), plan:PLAN.find(w => w.mon === m)?.h ?? null}));
+  const max = Math.max(4, ...data.map(x => x.t.swim+x.t.bike+x.t.run+x.t.other), ...data.map(x => x.plan || 0));
+  const top = Math.ceil(max/2)*2;
+  const W = 640, H = 220, L = 30, B = 24, cw = (W-L-6)/data.length, sc = v => (H-B) - v/top*(H-B-10);
+  let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" style="min-width:480px;display:block" role="img" aria-label="Weekly training hours by sport">`;
+  for (let v = 0; v <= top; v += top > 10 ? 4 : 2) svg += `<line x1="${L}" x2="${W-4}" y1="${sc(v)}" y2="${sc(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L-6}" y="${sc(v)+3}" text-anchor="end">${v}</text>`;
+  data.forEach((x,i) => {
+    let y = sc(0); const xx = L + i*cw + 3;
+    ["swim","bike","run","other"].forEach(k => { const h = x.t[k]/top*(H-B-10); if (h > 0){ y -= h; svg += `<rect x="${xx}" y="${y}" width="${cw-6}" height="${h}" fill="${SPORT[k].c}" rx="1"/>`; } });
+    if (i % 2 === 0 || i === data.length-1) svg += `<text x="${xx + (cw-6)/2}" y="${H-8}" text-anchor="middle">${parse(x.m).getDate()}.${parse(x.m).getMonth()+1}</text>`;
+  });
+  const pts = data.map((x,i) => x.plan != null ? `${L + i*cw + cw/2},${sc(x.plan)}` : null).filter(Boolean);
+  if (pts.length > 1) svg += `<polyline points="${pts.join(" ")}" fill="none" stroke="var(--ink)" stroke-width="2" stroke-dasharray="4 3"/>`;
+  else if (pts.length === 1){ const [px,py] = pts[0].split(","); svg += `<line x1="${px-cw/2+3}" x2="${+px+cw/2-3}" y1="${py}" y2="${py}" stroke="var(--ink)" stroke-width="2"/>`; }
+  svg += `</svg><div class="legs" style="margin-top:6px"><span style="--c:var(--swim)">Swim</span><span style="--c:var(--bike)">Bike</span><span style="--c:var(--run)">Run</span><span style="--c:var(--other)">Other</span></div>`;
+  $("hoursChart").innerHTML = svg;
+
+  // easy-run discipline, last 6 weeks
+  const since = addDays(TODAY, -42);
+  const runs = S.acts.filter(a => a.sport === "run" && a.date >= since && a.hr);
+  const easy = runs.filter(a => a.hr <= 155);
+  const pct = runs.length ? Math.round(easy.length/runs.length*100) : 0;
+  $("easyPanel").innerHTML = `<span class="lbl">Easy-run discipline · last 6 weeks</span><div style="font-family:var(--display);font-size:44px;line-height:1;margin-top:6px;color:${pct >= 60 ? "var(--good)" : "var(--warn)"}">${runs.length ? pct + "%" : "–"}</div>
+    <div class="muted" style="font-size:14px">${easy.length} of ${runs.length} runs averaged 155 bpm or less. Aim for at least 70%: Ironman fitness is built at easy effort, and hard runs cost recovery the bike needs.</div>`;
+
+  // longest sessions
+  const longest = sp => S.acts.filter(a => a.sport === sp && a.date >= addDays(TODAY,-56)).reduce((m,a) => a.min > (m?.min||0) ? a : m, null);
+  const lr = longest("bike"), lu = longest("run"), ls = longest("swim");
+  $("longPanel").innerHTML = `<span class="lbl">Longest in the last 8 weeks</span>
+    <div class="act"><span class="tag" style="--c:var(--swim)">Swim</span><span class="num">${ls ? ls.km.toFixed(2) + " km · " + hm(ls.min) : "none"}</span><span class="num muted">3.8 km</span></div>
+    <div class="act"><span class="tag" style="--c:var(--bike)">Bike</span><span class="num">${lr ? lr.km.toFixed(0) + " km · " + hm(lr.min) : "none"}</span><span class="num muted">180 km</span></div>
+    <div class="act"><span class="tag" style="--c:var(--run)">Run</span><span class="num">${lu ? lu.km.toFixed(1) + " km · " + hm(lu.min) : "none"}</span><span class="num muted">42.2 km</span></div>
+    <div class="muted" style="font-size:13px;margin-top:4px">Right column: race distance.</div>`;
+
+  // wellness chart
+  const wl = [...S.well].sort((a,b) => a.date < b.date ? -1 : 1).slice(-28);
+  if (!wl.length){ $("wellChart").innerHTML = `<div class="empty">No recovery data yet.</div>`; }
+  else {
+    const W2 = 640, H2 = 170, L2 = 30, R2 = 30, B2 = 22; const n = wl.length; const cx = i => L2 + (n === 1 ? 0 : i*(W2-L2-R2)/(n-1));
+    const rv = wl.map(x => x.rhr).filter(Boolean); const rmin = Math.min(...rv) - 3, rmax = Math.max(...rv) + 3;
+    const ry = v => 10 + (rmax - v)/(rmax - rmin)*(H2-B2-20);
+    const sy = v => (H2-B2) - v/10*(H2-B2-20);
+    let s2 = `<svg viewBox="0 0 ${W2} ${H2}" width="100%" style="min-width:480px;display:block" role="img" aria-label="Resting heart rate and sleep">`;
+    [0,5,10].forEach(v => s2 += `<line x1="${L2}" x2="${W2-R2}" y1="${sy(v)}" y2="${sy(v)}" stroke="var(--line)"/><text x="${W2-R2+4}" y="${sy(v)+3}">${v}h</text>`);
+    [Math.ceil(rmin), Math.floor(rmax)].forEach(v => s2 += `<text x="${L2-6}" y="${ry(v)+3}" text-anchor="end">${v}</text>`);
+    const bw = Math.max(4, (W2-L2-R2)/n - 4);
+    wl.forEach((x,i) => { if (x.sleepH) s2 += `<rect x="${cx(i)-bw/2}" y="${sy(x.sleepH)}" width="${bw}" height="${sy(0)-sy(x.sleepH)}" fill="var(--lake-soft)"/>`; });
+    const pts2 = wl.map((x,i) => x.rhr ? `${cx(i)},${ry(x.rhr)}` : null).filter(Boolean);
+    s2 += `<polyline points="${pts2.join(" ")}" fill="none" stroke="var(--run)" stroke-width="2"/>`;
+    const li = wl.length-1; if (wl[li].rhr) s2 += `<circle cx="${cx(li)}" cy="${ry(wl[li].rhr)}" r="4" fill="var(--run)"/>`;
+    [0, Math.floor(n/2), n-1].forEach(i => s2 += `<text x="${cx(i)}" y="${H2-6}" text-anchor="middle">${parse(wl[i].date).getDate()}.${parse(wl[i].date).getMonth()+1}</text>`);
+    s2 += `</svg><div class="legs" style="margin-top:6px"><span style="--c:var(--run)">Resting HR (bpm, left)</span><span style="--c:var(--lake-soft)">Sleep (hours, right)</span></div>`;
+    $("wellChart").innerHTML = s2;
+  }
+
+  const rec = [...S.acts].sort((a,b) => (a.date+a.time) < (b.date+b.time) ? 1 : -1).slice(0, 15);
+  $("actTable").innerHTML = `<thead><tr><th>Date</th><th>Sport</th><th>Distance</th><th>Time</th><th>Pace / speed</th><th>Avg HR</th></tr></thead><tbody>` +
+    (rec.length ? rec.map(a => { const sp = SPORT[a.sport] || SPORT.other;
+      const p = a.sport === "run" && a.pace ? mmss(a.pace) + " /km" : a.sport === "swim" && a.pace ? mmss(a.pace) + " /100 m" : a.sport === "bike" ? (a.kmh ?? "–") + " km/h" : "";
+      return `<tr><td class="n">${fmtDay(a.date)}</td><td><span class="tag" style="--c:${sp.c}">${sp.n}</span></td><td class="n">${a.km ? a.km.toFixed(a.sport==="swim"?2:1) + " km" : "–"}</td><td class="n">${hm(a.min||0)}</td><td class="n">${p}</td><td class="n">${a.hr ? Math.round(a.hr) : "–"}</td></tr>`; }).join("")
+      : `<tr><td colspan="6" class="empty">Activities appear here after the first sync.</td></tr>`) + `</tbody>`;
+}
+
+/* ---------- race ---------- */
+function toSec(s){ const m = String(s||"").trim().match(/^(\d+):(\d{1,2})$/); return m ? +m[1]*60 + +m[2] : null; }
+function renderRace(){
+  const ftp = S.settings.ftp;
+  const css = S.settings.css; // seconds per 100 m
+  const legs = [
+    ["Swim","3.8 km","1:20","about 2:05 /100 m. Start wide, settle into a rhythm, sight every 6–8 strokes. The last 1 km is the Lend canal: narrow, so hold your line."],
+    ["T1","","0:08","Walk-jog, no rush."],
+    ["Bike","180.2 km","6:15",`about 29 km/h at ${ftp ? Math.round(ftp*0.68) + "–" + Math.round(ftp*0.72) + " W" : "68–72% FTP"}, heart rate 135–150. Climbs at no more than ${ftp ? Math.round(ftp*0.85) + " W" : "85% FTP"}. 80–90 g carbs and 600–800 ml fluid per hour.`],
+    ["T2","","0:05",""],
+    ["Run","42.2 km","4:12","about 5:58 /km, 150–158 bpm. First 10 km slower than feels right. Walk every aid station, gel or cola every 30–40 min."],
+  ];
+  $("paceTable").innerHTML = `<thead><tr><th>Leg</th><th>Distance</th><th>Target</th><th>How</th></tr></thead><tbody>` +
+    legs.map(l => `<tr><td><b>${l[0]}</b></td><td class="n">${l[1]}</td><td class="n">${l[2]}</td><td style="min-width:220px">${esc(l[3])}</td></tr>`).join("") +
+    `<tr><td><b>Finish</b></td><td></td><td class="n"><b>12:00</b></td><td></td></tr></tbody>`;
+  if (ftp && document.activeElement !== $("ftpIn")) $("ftpIn").value = ftp;
+  $("bikeZones").innerHTML = ftp ? `<table><tbody>${[["Recovery","<55%",0,.55],["Endurance / long ride","56–75%",.56,.75],["Ironman race power","68–72%",.68,.72],["Sweet spot","88–93%",.88,.93],["Threshold","95–105%",.95,1.05]].map(z => `<tr><td>${z[0]}</td><td class="n">${z[1]}</td><td class="n">${z[2] ? Math.round(ftp*z[2]) + "–" : "&lt; "}${Math.round(ftp*z[3])} W</td></tr>`).join("")}</tbody></table>`
+    : `<div class="empty">Enter your FTP after the test to see your power targets.</div>`;
+  if (css){
+    const z = (d) => mmss((css + d)/60);
+    $("swimZones").innerHTML = `<table><tbody><tr><td>CSS (threshold)</td><td class="n">${z(0)} /100 m</td></tr><tr><td>Threshold sets</td><td class="n">${z(3)} /100 m</td></tr><tr><td>Ironman race pace</td><td class="n">${z(8)} /100 m</td></tr><tr><td>Steady aerobic</td><td class="n">${z(10)} /100 m</td></tr></tbody></table>`;
+  } else $("swimZones").innerHTML = `<div class="empty">Enter both test times to see your swim paces.</div>`;
+  if (S.settings.t400 && document.activeElement !== $("t400")) $("t400").value = S.settings.t400;
+  if (S.settings.t200 && document.activeElement !== $("t200")) $("t200").value = S.settings.t200;
+  const rows = [["1 · Recovery","< 155","< 146","Warm-ups, recovery days"],["2 · Aerobic","155–162","146–160","Long runs, long rides, Ironman effort"],["3 · Tempo","163–171","162–167","Tempo runs"],["4 · Threshold","172–180","168–178","Threshold intervals"],["5 · Max","181+","180+","Short hard efforts only"]];
+  $("hrTable").innerHTML = `<thead><tr><th>Zone</th><th>Run (bpm)</th><th>Bike (bpm)</th><th>Use</th></tr></thead><tbody>${rows.map(r => `<tr><td>${r[0]}</td><td class="n">${r[1]}</td><td class="n">${r[2]}</td><td>${r[3]}</td></tr>`).join("")}</tbody>`;
+}
+
+function renderAll(){ renderHeader(); renderToday(); renderWeek(); renderPlan(); renderProgress(); renderRace(); }
+
+/* ---------- interactions ---------- */
+document.querySelector("nav").addEventListener("click", e => {
+  const b = e.target.closest("button[data-tab]"); if (!b) return; showTab(b.dataset.tab);
+});
+function showTab(t){
+  document.querySelectorAll("nav button").forEach(x => x.setAttribute("aria-selected", x.dataset.tab === t));
+  document.querySelectorAll("[data-panel]").forEach(p => p.hidden = p.dataset.panel !== t);
+  try { localStorage.setItem("tab", t); } catch(e) {}
+}
+$("wkPrev").onclick = () => { if (curWeek > 1){ curWeek--; renderWeek(); } };
+$("wkNext").onclick = () => { if (curWeek < 34){ curWeek++; renderWeek(); } };
+$("planList").addEventListener("click", e => { const b = e.target.closest("[data-week]"); if (!b) return; curWeek = +b.dataset.week; renderWeek(); showTab("week"); window.scrollTo(0,0); });
+let feelSel = null;
+$("feel").addEventListener("click", e => { const b = e.target.closest("[data-feel]"); if (!b) return; feelSel = +b.dataset.feel; $("feel").querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", +x.dataset.feel === feelSel)); });
+$("ciSave").onclick = async () => {
+  const cur = S.checkins[TODAY] || {};
+  const data = {date:TODAY, feel: feelSel ?? cur.feel ?? null, note: $("ciNote").value.trim(), savedAt: new Date().toISOString()};
+  S.checkins[TODAY] = data;
+  $("ciMsg").textContent = LS.set("checkins", S.checkins) ? "Saved on this device" : "Couldn't save: this browser blocks storage";
+  renderToday();
+};
+async function saveSettings(patch, msgEl){
+  S.settings = {...S.settings, ...patch}; LS.set("settings", S.settings); renderRace();
+}
+$("ftpSave").onclick = () => { const v = +$("ftpIn").value; if (v >= 80 && v <= 450) saveSettings({ftp:v}); };
+$("cssSave").onclick = () => { const a = toSec($("t400").value), b = toSec($("t200").value); if (a && b && a > b) saveSettings({t400:$("t400").value.trim(), t200:$("t200").value.trim(), css:(a-b)/2}); };
+
+/* ---------- boot ---------- */
+try { const t = localStorage.getItem("tab"); if (t) showTab(t); } catch(e) {}
+renderAll();
+(async () => {
+  try {
+    const r = await fetch("data.json?v=" + Date.now(), {cache:"no-store"});
+    const d = await r.json();
+    S.acts = d.activities || []; S.well = d.wellness || []; S.sync = d.sync || null;
+  } catch(e){ console.warn("data.json", e); }
+  renderAll();
+})();
+</script>
+</body>
+</html>
